@@ -3,7 +3,7 @@ name = "recipe-import-engine"
 version = "0.1.0"
 description = "Multi-provider recipe extraction service with BYOK support"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 license = {text = "MIT"}
 dependencies = [
     "fastapi>=0.115.0",
@@ -40,7 +40,7 @@ packages = ["src/recipe_importer"]
 # === RUFF: Fast linting and formatting ===
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"  # py314 not yet supported by ruff
 src = ["src"]
 
 [tool.ruff.lint]
@@ -56,27 +56,19 @@ select = [
     "C4",    # flake8-comprehensions
     "RUF",   # ruff-specific rules
 ]
-ignore = [
-    "ANN101",  # Missing type annotation for `self`
-    "ANN102",  # Missing type annotation for `cls`
-]
+# No ignored rules
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN"]  # Don't require annotations in tests
 
 # === BASEDPYRIGHT: Strict type checking ===
 [tool.basedpyright]
-pythonVersion = "3.11"
-typeCheckingMode = "all"  # Strictest mode
+pythonVersion = "3.14"
+typeCheckingMode = "strict"  # Very strict but practical
 reportMissingTypeStubs = "warning"
-reportUnknownMemberType = "warning"
-reportUnknownArgumentType = "warning"
-reportUnknownVariableType = "warning"
-reportUntypedFunctionDecorator = "warning"
-reportUntypedClassDecorator = "warning"
+reportPrivateImportUsage = "warning"  # google.generativeai has issues
 
 # === PYTEST ===
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-

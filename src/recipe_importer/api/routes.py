@@ -10,7 +10,6 @@ from recipe_importer.api.schemas import (
     ImportRequest,
     ImportResponse,
 )
-from recipe_importer.core.models import ExtractionResult, RecipeDTO
 from recipe_importer.llm import get_provider
 
 router = APIRouter()
@@ -69,9 +68,9 @@ async def import_recipe(
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Extraction failed: {str(e)}",
-        )
+            detail=f"Extraction failed: {e!s}",
+        ) from e

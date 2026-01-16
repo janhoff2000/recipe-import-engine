@@ -1,30 +1,26 @@
 """LLM provider exports and factory."""
 
-from typing import Optional
-
 from recipe_importer.llm.anthropic import AnthropicProvider
 from recipe_importer.llm.base import LLMProvider
 from recipe_importer.llm.gemini import GeminiProvider
 from recipe_importer.llm.openai import OpenAIProvider
 
 __all__ = [
+    "AnthropicProvider",
+    "GeminiProvider",
     "LLMProvider",
     "OpenAIProvider",
-    "GeminiProvider",
-    "AnthropicProvider",
     "get_provider",
 ]
 
-PROVIDERS = {
+PROVIDERS: dict[str, type[LLMProvider]] = {
     "openai": OpenAIProvider,
     "gemini": GeminiProvider,
     "anthropic": AnthropicProvider,
 }
 
 
-def get_provider(
-    provider_name: str, api_key: str, model: Optional[str] = None
-) -> LLMProvider:
+def get_provider(provider_name: str, api_key: str, model: str | None = None) -> LLMProvider:
     """Factory function to get an LLM provider by name."""
     provider_class = PROVIDERS.get(provider_name.lower())
     if not provider_class:

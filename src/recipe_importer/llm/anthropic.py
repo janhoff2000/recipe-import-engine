@@ -1,9 +1,10 @@
 """Anthropic Claude LLM provider adapter."""
 
 import json
-from typing import Optional
+from typing import Any, override
 
 from anthropic import AsyncAnthropic
+from anthropic.types import TextBlock
 
 from recipe_importer.core.models import RecipeDTO
 from recipe_importer.llm.base import LLMProvider
@@ -13,14 +14,17 @@ class AnthropicProvider(LLMProvider):
     """Anthropic Claude provider for recipe extraction."""
 
     @property
+    @override
     def name(self) -> str:
         return "anthropic"
 
     @property
+    @override
     def default_model(self) -> str:
         return "claude-3-haiku-20240307"  # Fast and cost-effective
 
     @property
+    @override
     def supported_models(self) -> list[str]:
         return [
             "claude-3-haiku-20240307",
@@ -28,13 +32,12 @@ class AnthropicProvider(LLMProvider):
             "claude-3-opus-20240229",
         ]
 
-    async def extract_recipe(
-        self, text: str, image_url: Optional[str] = None
-    ) -> RecipeDTO:
+    @override
+    async def extract_recipe(self, text: str, image_url: str | None = None) -> RecipeDTO:
         """Extract recipe using Anthropic Claude."""
         client = AsyncAnthropic(api_key=self.api_key)
 
-        content: list[dict] = [{"type": "text", "text": text}]
+        content_blocks: list[TextBlock] = [TextBlock(type="text", text=text)]
 
         # Add image if provided
         if image_url:
@@ -45,13 +48,13 @@ class AnthropicProvider(LLMProvider):
             model=self.model,
             max_tokens=4096,
             system=self._get_extraction_prompt(),
-            messages=[{"role": "user", "content": content}],
+            messages=[{"role": "user", "content": content_blocks}],
         )
 
         # Extract text from response
         response_text = ""
         for block in response.content:
-            if block.type == "text":
+            if isinstance(block, TextBlock):
                 response_text = block.text
                 break
 
@@ -64,5 +67,5 @@ class AnthropicProvider(LLMProvider):
         elif "```" in response_text:
             response_text = response_text.split("```")[1].split("```")[0]
 
-        data = json.loads(response_text.strip())
+        data: dict[str, Any] = json.loads(response_text.strip())
         return RecipeDTO.model_validate(data)

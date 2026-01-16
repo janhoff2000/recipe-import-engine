@@ -1,7 +1,6 @@
 """Abstract base class for LLM providers."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from recipe_importer.core.models import RecipeDTO
 
@@ -9,7 +8,10 @@ from recipe_importer.core.models import RecipeDTO
 class LLMProvider(ABC):
     """Base class for LLM provider adapters."""
 
-    def __init__(self, api_key: str, model: Optional[str] = None):
+    api_key: str
+    model: str
+
+    def __init__(self, api_key: str, model: str | None = None) -> None:
         """Initialize the provider with API key and optional model override."""
         self.api_key = api_key
         self.model = model or self.default_model
@@ -33,9 +35,7 @@ class LLMProvider(ABC):
         ...
 
     @abstractmethod
-    async def extract_recipe(
-        self, text: str, image_url: Optional[str] = None
-    ) -> RecipeDTO:
+    async def extract_recipe(self, text: str, image_url: str | None = None) -> RecipeDTO:
         """Extract recipe from text (and optionally an image)."""
         ...
 
