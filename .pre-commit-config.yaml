@@ -11,12 +11,12 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
 
-  # Basedpyright: Strict type checking (uses local installation)
+  # Basedpyright: Strict type checking (uses local venv installation)
   - repo: local
     hooks:
       - id: basedpyright
         name: basedpyright
-        entry: basedpyright
+        entry: .venv/bin/basedpyright
         language: system
         types: [python]
         pass_filenames: false

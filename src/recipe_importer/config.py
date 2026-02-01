@@ -27,6 +27,21 @@ class Settings(BaseSettings):
     # Rate limiting
     rate_limit_per_minute: int = 60
 
+    # Meta oEmbed API (for Instagram fetching)
+    # Format: "{app_id}|{app_secret}" or use meta_app_id + meta_app_secret
+    meta_app_token: str | None = None
+    meta_app_id: str | None = None
+    meta_app_secret: str | None = None
+
+    @property
+    def effective_meta_token(self) -> str | None:
+        """Get Meta App Token, constructing from ID+secret if needed."""
+        if self.meta_app_token:
+            return self.meta_app_token
+        if self.meta_app_id and self.meta_app_secret:
+            return f"{self.meta_app_id}|{self.meta_app_secret}"
+        return None
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

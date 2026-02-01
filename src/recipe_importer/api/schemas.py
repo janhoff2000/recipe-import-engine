@@ -11,6 +11,10 @@ class ImportRequest(BaseModel):
     url: HttpUrl = Field(..., description="URL to import recipe from")
     provider: str = Field("openai", description="LLM provider: openai, gemini, anthropic")
     model: str | None = Field(None, description="Specific model to use (optional)")
+    skip_recipe_check: bool = Field(
+        False,
+        description="Skip heuristic recipe detection and force LLM extraction",
+    )
 
 
 class ImportResponse(ExtractionResult):
