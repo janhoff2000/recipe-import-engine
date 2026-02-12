@@ -1,56 +1,53 @@
-"""Google Gemini LLM provider adapter."""
+"""Google Gemini LLM provider adapter with structured output."""
 
-import json
-from typing import Any, override
+import time
+
+from google import genai
+from google.genai.types import GenerateContentConfig
 
 from recipe_importer.core.models import RecipeDTO
-from recipe_importer.llm.base import LLMProvider
+from recipe_importer.llm.base import EXTRACTION_PROMPT, ExtractionOutput
 
 
-class GeminiProvider(LLMProvider):
-    """Google Gemini provider for recipe extraction."""
+class GeminiProvider:
+    """Google Gemini provider for recipe extraction using structured output."""
 
-    @property
-    @override
-    def name(self) -> str:
-        return "gemini"
+    name: str = "gemini"
 
-    @property
-    @override
-    def default_model(self) -> str:
-        return "gemini-2.0-flash"  # Fast and cost-effective
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash-lite") -> None:
+        self.model = model
+        self._client = genai.Client(api_key=api_key)
 
-    @property
-    @override
-    def supported_models(self) -> list[str]:
-        return ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+    async def extract_recipe(self, text: str) -> ExtractionOutput:
+        """Extract recipe using Gemini structured output."""
+        start = time.monotonic()
 
-    @override
-    async def extract_recipe(self, text: str, image_url: str | None = None) -> RecipeDTO:
-        """Extract recipe using Google Gemini."""
-        # Import here to avoid module-level issues with google.generativeai
-        import google.generativeai as genai  # pyright: ignore[reportPrivateImportUsage]
-
-        genai.configure(api_key=self.api_key)  # pyright: ignore[reportUnknownMemberType]
-        model = genai.GenerativeModel(self.model)  # pyright: ignore[reportUnknownMemberType]
-
-        prompt = f"""{self._get_extraction_prompt()}
-
-Text to extract from:
-{text}"""
-
-        # Note: For production, handle image_url by fetching and including as Part
-        response = await model.generate_content_async(  # pyright: ignore[reportUnknownMemberType]
-            prompt,
-            generation_config=genai.GenerationConfig(  # pyright: ignore[reportUnknownMemberType]
+        response = await self._client.aio.models.generate_content(  # pyright: ignore[reportUnknownMemberType]
+            model=self.model,
+            contents=f"{EXTRACTION_PROMPT}\n\nText to extract from:\n{text}",
+            config=GenerateContentConfig(
                 response_mime_type="application/json",
+                response_schema=RecipeDTO,
                 temperature=0.1,
             ),
         )
 
-        content: str | None = response.text
-        if not content:
-            raise ValueError("Empty response from Gemini")
+        latency_ms = int((time.monotonic() - start) * 1000)
 
-        data: dict[str, Any] = json.loads(content)
-        return RecipeDTO.model_validate(data)
+        if not response.text:
+            raise ValueError("Gemini returned empty response")
+
+        recipe = RecipeDTO.model_validate_json(response.text)
+
+        input_tokens = 0
+        output_tokens = 0
+        if response.usage_metadata:
+            input_tokens = response.usage_metadata.prompt_token_count or 0
+            output_tokens = response.usage_metadata.candidates_token_count or 0
+
+        return ExtractionOutput(
+            recipe=recipe,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            latency_ms=latency_ms,
+        )

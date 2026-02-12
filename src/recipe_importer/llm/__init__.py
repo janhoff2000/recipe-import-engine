@@ -1,29 +1,27 @@
 """LLM provider exports and factory."""
 
-from recipe_importer.llm.anthropic import AnthropicProvider
-from recipe_importer.llm.base import LLMProvider
+from recipe_importer.llm.base import ExtractionOutput, LLMProvider
 from recipe_importer.llm.gemini import GeminiProvider
 from recipe_importer.llm.openai import OpenAIProvider
 
 __all__ = [
-    "AnthropicProvider",
+    "ExtractionOutput",
     "GeminiProvider",
     "LLMProvider",
     "OpenAIProvider",
     "get_provider",
 ]
 
-PROVIDERS: dict[str, type[LLMProvider]] = {
-    "openai": OpenAIProvider,
-    "gemini": GeminiProvider,
-    "anthropic": AnthropicProvider,
-}
 
+def get_provider(model: str, api_key: str) -> OpenAIProvider | GeminiProvider:
+    """Create an LLM provider based on model name.
 
-def get_provider(provider_name: str, api_key: str, model: str | None = None) -> LLMProvider:
-    """Factory function to get an LLM provider by name."""
-    provider_class = PROVIDERS.get(provider_name.lower())
-    if not provider_class:
-        available = ", ".join(PROVIDERS.keys())
-        raise ValueError(f"Unknown provider: {provider_name}. Available: {available}")
-    return provider_class(api_key=api_key, model=model)
+    Auto-detects provider from model prefix:
+    - gpt-* → OpenAI
+    - gemini-* → Gemini
+    """
+    if model.startswith("gpt-"):
+        return OpenAIProvider(api_key=api_key, model=model)
+    if model.startswith("gemini-"):
+        return GeminiProvider(api_key=api_key, model=model)
+    raise ValueError(f"Unknown model: {model}. Model must start with 'gpt-' or 'gemini-'.")

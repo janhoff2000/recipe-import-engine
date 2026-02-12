@@ -1,7 +1,7 @@
 [project]
 name = "recipe-import-engine"
-version = "0.1.0"
-description = "Multi-provider recipe extraction service with BYOK support"
+version = "0.2.0"
+description = "Recipe extraction service with model comparison and tracking"
 readme = "README.md"
 requires-python = ">=3.14"
 license = {text = "MIT"}
@@ -9,12 +9,12 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
     "httpx>=0.28.0",
-    "beautifulsoup4>=4.12.0",
     "openai>=1.50.0",
-    "google-generativeai>=0.8.0",
-    "anthropic>=0.40.0",
+    "google-genai>=1.0.0",
     "pydantic>=2.9.0",
     "pydantic-settings>=2.5.0",
+    "aiosqlite>=0.20.0",
+    "jinja2>=3.1.0",
 ]
 
 [project.optional-dependencies]
@@ -64,9 +64,10 @@ select = [
 # === BASEDPYRIGHT: Strict type checking ===
 [tool.basedpyright]
 pythonVersion = "3.14"
-typeCheckingMode = "strict"  # Very strict but practical
+typeCheckingMode = "strict"
 reportMissingTypeStubs = "warning"
-reportPrivateImportUsage = "warning"  # google.generativeai has issues
+reportPrivateImportUsage = "warning"
+exclude = ["tests/"]
 
 # === PYTEST ===
 [tool.pytest.ini_options]

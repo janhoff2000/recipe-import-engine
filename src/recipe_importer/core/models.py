@@ -21,8 +21,6 @@ class RecipeDTO(BaseModel):
     ingredients: list[IngredientDTO] = Field(default_factory=list)
     steps: list[str] = Field(default_factory=list, description="Cooking instructions")
     source_url: str | None = Field(None, description="Original URL")
-    image_url: str | None = Field(None, description="Main image URL")
-    confidence_score: float = Field(1.0, ge=0.0, le=1.0, description="Extraction confidence (0-1)")
 
 
 class ExtractionResult(BaseModel):

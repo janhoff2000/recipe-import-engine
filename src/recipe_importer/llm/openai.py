@@ -1,66 +1,49 @@
-"""OpenAI LLM provider adapter."""
+"""OpenAI LLM provider adapter with structured output."""
 
-import json
-from typing import Any, override
+import time
 
 from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletionMessageParam
 
 from recipe_importer.core.models import RecipeDTO
-from recipe_importer.llm.base import LLMProvider
+from recipe_importer.llm.base import EXTRACTION_PROMPT, ExtractionOutput
 
 
-class OpenAIProvider(LLMProvider):
-    """OpenAI GPT provider for recipe extraction."""
+class OpenAIProvider:
+    """OpenAI provider for recipe extraction using structured output."""
 
-    @property
-    @override
-    def name(self) -> str:
-        return "openai"
+    name: str = "openai"
 
-    @property
-    @override
-    def default_model(self) -> str:
-        return "gpt-4o-mini"  # Cost-effective default
+    def __init__(self, api_key: str, model: str = "gpt-4.1-nano") -> None:
+        self.model = model
+        self._client = AsyncOpenAI(api_key=api_key, timeout=30.0)
 
-    @property
-    @override
-    def supported_models(self) -> list[str]:
-        return ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo"]
+    async def extract_recipe(self, text: str) -> ExtractionOutput:
+        """Extract recipe using OpenAI structured output."""
+        start = time.monotonic()
 
-    @override
-    async def extract_recipe(self, text: str, image_url: str | None = None) -> RecipeDTO:
-        """Extract recipe using OpenAI's structured output."""
-        client = AsyncOpenAI(api_key=self.api_key)
-
-        messages: list[ChatCompletionMessageParam] = [
-            {"role": "system", "content": self._get_extraction_prompt()},
-        ]
-
-        # Build user message with optional image
-        if image_url:
-            messages.append(
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": text},
-                        {"type": "image_url", "image_url": {"url": image_url}},
-                    ],
-                }
-            )
-        else:
-            messages.append({"role": "user", "content": text})
-
-        response = await client.chat.completions.create(
+        response = await self._client.beta.chat.completions.parse(
             model=self.model,
-            messages=messages,
-            response_format={"type": "json_object"},
-            temperature=0.1,  # Low temperature for consistent extraction
+            messages=[
+                {"role": "system", "content": EXTRACTION_PROMPT},
+                {"role": "user", "content": text},
+            ],
+            response_format=RecipeDTO,
+            temperature=0.1,
         )
 
-        content = response.choices[0].message.content
-        if not content:
-            raise ValueError("Empty response from OpenAI")
+        latency_ms = int((time.monotonic() - start) * 1000)
 
-        data: dict[str, Any] = json.loads(content)
-        return RecipeDTO.model_validate(data)
+        parsed = response.choices[0].message.parsed
+        if parsed is None:
+            raise ValueError("OpenAI returned no parsed output")
+
+        usage = response.usage
+        input_tokens = usage.prompt_tokens if usage else 0
+        output_tokens = usage.completion_tokens if usage else 0
+
+        return ExtractionOutput(
+            recipe=parsed,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            latency_ms=latency_ms,
+        )

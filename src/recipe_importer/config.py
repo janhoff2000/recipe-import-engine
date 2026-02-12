@@ -11,27 +11,28 @@ class Settings(BaseSettings):
     # Service settings
     app_name: str = "Recipe Import Engine"
     debug: bool = False
+    log_level: str = "INFO"
 
     # API authentication
     api_key: str = ""  # Service-level API key for authenticating clients
 
-    # Default LLM settings (used when client doesn't provide BYOK)
-    default_llm_provider: str = "openai"
-    default_llm_model: str | None = None
+    # Default LLM model (auto-detects provider from model name)
+    default_model: str = "gpt-4.1-nano"
 
-    # Provider API keys (optional - for managed/default mode)
+    # Provider API keys
     openai_api_key: str | None = None
     google_api_key: str | None = None
-    anthropic_api_key: str | None = None
-
-    # Rate limiting
-    rate_limit_per_minute: int = 60
 
     # Meta oEmbed API (for Instagram fetching)
-    # Format: "{app_id}|{app_secret}" or use meta_app_id + meta_app_secret
     meta_app_token: str | None = None
     meta_app_id: str | None = None
     meta_app_secret: str | None = None
+
+    # CORS
+    cors_origins: list[str] = ["*"]
+
+    # Tracking
+    tracking_db_path: str = "data/tracking.db"
 
     @property
     def effective_meta_token(self) -> str | None:

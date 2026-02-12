@@ -1,49 +1,25 @@
-"""Abstract base class for LLM providers."""
+"""LLM provider protocol and extraction output."""
 
-from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Protocol, runtime_checkable
 
 from recipe_importer.core.models import RecipeDTO
 
 
-class LLMProvider(ABC):
-    """Base class for LLM provider adapters."""
+@dataclass
+class ExtractionOutput:
+    """Output from an LLM extraction call."""
 
-    api_key: str
-    model: str
+    recipe: RecipeDTO
+    input_tokens: int
+    output_tokens: int
+    latency_ms: int
 
-    def __init__(self, api_key: str, model: str | None = None) -> None:
-        """Initialize the provider with API key and optional model override."""
-        self.api_key = api_key
-        self.model = model or self.default_model
 
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        """Provider name (e.g., 'openai', 'gemini', 'anthropic')."""
-        ...
+EXTRACTION_PROMPT = """\
+You are a recipe extraction assistant. Extract the recipe from the provided text.
 
-    @property
-    @abstractmethod
-    def default_model(self) -> str:
-        """Default model to use if none specified."""
-        ...
-
-    @property
-    @abstractmethod
-    def supported_models(self) -> list[str]:
-        """List of supported model identifiers."""
-        ...
-
-    @abstractmethod
-    async def extract_recipe(self, text: str, image_url: str | None = None) -> RecipeDTO:
-        """Extract recipe from text (and optionally an image)."""
-        ...
-
-    def _get_extraction_prompt(self) -> str:
-        """Get the system prompt for recipe extraction."""
-        return """You are a recipe extraction assistant. Extract the recipe from the provided text.
-
-Return a JSON object with these fields:
+Extract these fields:
 - title: string (recipe name)
 - servings: number or null (number of servings)
 - duration_minutes: number or null (total time in minutes)
@@ -54,6 +30,15 @@ Return a JSON object with these fields:
   - note: string or null (e.g., "chopped", "room temperature")
 - steps: array of strings (cooking instructions in order)
 
-Be precise with quantities. Convert fractions to decimals (½ = 0.5).
-If information is missing, use null.
-Return ONLY valid JSON, no markdown or explanation."""
+Be precise with quantities. Convert fractions to decimals (1/2 = 0.5).
+If information is missing, use null."""
+
+
+@runtime_checkable
+class LLMProvider(Protocol):
+    """Protocol for LLM provider adapters."""
+
+    name: str
+    model: str
+
+    async def extract_recipe(self, text: str) -> ExtractionOutput: ...

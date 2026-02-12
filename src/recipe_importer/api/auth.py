@@ -1,4 +1,4 @@
-"""API authentication utilities."""
+"""API authentication."""
 
 from fastapi import Header, HTTPException, status
 
@@ -20,30 +20,3 @@ async def verify_api_key(x_api_key: str = Header(..., alias="X-Api-Key")) -> str
         )
 
     return x_api_key
-
-
-def get_llm_api_key(
-    provider: str,
-    byok_key: str | None = None,
-) -> str:
-    """Get LLM API key - prefer BYOK, fall back to service defaults."""
-    if byok_key:
-        return byok_key
-
-    settings = get_settings()
-
-    provider_keys = {
-        "openai": settings.openai_api_key,
-        "gemini": settings.google_api_key,
-        "anthropic": settings.anthropic_api_key,
-    }
-
-    key = provider_keys.get(provider.lower())
-    if not key:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No API key available for provider '{provider}'. "
-            "Provide X-LLM-Api-Key header or configure server defaults.",
-        )
-
-    return key
